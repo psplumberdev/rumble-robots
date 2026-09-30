@@ -18,13 +18,16 @@ Person::Person(JQuad* quads[], JQuad* deadquad, std::vector<Bullet*>* bullets, s
 	mSpeed = 0.0f;
 	mAngle = 0.0f;
 	mMaxSpeed = 0.0f;
+	mKnifeCooldown = 0.0f;
 
 	mMoveState = NOTMOVING;
 	mState = DEAD;
 	//mState = 0;
 	mStateTime = 0.0f;
-	mHealth = 100;
+	mHealth = GetMaxHealth();
 	mMoney = 800;
+	mSpeedLevel = 1; mPowerLevel = 0; mLaserLevel = 1;
+	mLaserDefenseLevel = 0; mPunchLevel = 1; mPowerPoints = 5;
 	mRecoilAngle = 0.0f;
 	SetTotalRotation(M_PI_2);
 	//mRotation = 0.0f;
@@ -227,6 +230,10 @@ void Person::PreUpdate(float dt)
 //------------------------------------------------------------------------------------------------
 void Person::Update(float dt)
 {
+	if (mKnifeCooldown > 0.0f) {
+		mKnifeCooldown -= dt;
+		if (mKnifeCooldown < 0.0f) mKnifeCooldown = 0.0f;
+	}
 	if (mGuns[mGunIndex] == NULL) {
 		printf("isPlayerOnline: %i\n",mIsPlayerOnline);
 		printf("invalid gunindex: %i\n",mGunIndex);
@@ -406,7 +413,16 @@ void Person::Render(float x, float y)
 {
 	float offsetX = (x-SCREEN_WIDTH_2);
 	float offsetY = (y-SCREEN_HEIGHT_2);
-	if (mState != DEAD) {	
+	if (mState != DEAD) {
+		// RRSTEP2 uses the LOBJAW atlas: draw one centered rotating body.
+		// Keep weapon simulation/firing unchanged, but skip human limb and
+		// held-gun composition that follows in the legacy renderer.
+		float robotRotation = mRotation;
+		// LOBJAW's source art faces the opposite way from the play direction;
+		// rotate only that robot's body by 180 degrees at draw time.
+		if (mQuads[BODY] == gRobotQuads[T][0]) robotRotation += M_PI;
+		mRenderer->RenderQuad(mQuads[BODY],mX-offsetX,mY-offsetY,robotRotation,1.0f/16.0f,1.0f/16.0f);
+		return;
 		float rotation = mRotation+M_PI_2;
 		float centerx = mX-offsetX-4*cosf(rotation);
 		float centery = mY-offsetY-4*sinf(rotation);
@@ -562,7 +578,7 @@ void Person::Move(float speed, float angle)
 {
 	if (!mIsActive) return;
 	SetMoveState(MOVING);
-	mMaxSpeed = speed*mGuns[mGunIndex]->mGun->mSpeed;
+	mMaxSpeed = speed*mGuns[mGunIndex]->mGun->mSpeed*GetSpeedMultiplier();
 	if (mMovementStyle == RELATIVE1) {
 		mAngle = mFacingAngle+angle;
 	}
@@ -583,11 +599,23 @@ std::vector<Bullet*> Person::Fire()
 {
 	std::vector<Bullet*> bullets;
 	if (!mIsActive) return bullets;
+	// The Rumble Robots laser is the default weapon and must not run dry.
+	// Refill its clip/reserve before every shot while preserving the five-second
+	// firing delay handled by the gun table/state machine.
+	if (mGuns[mGunIndex] != NULL && mGuns[mGunIndex]->mGun->mId == 1) {
+		mGuns[mGunIndex]->mClipAmmo = mGuns[mGunIndex]->mGun->mClip;
+		mGuns[mGunIndex]->mRemainingAmmo = 999999;
+	}
 	if (mState == NORMAL) {
 		mIsFiring = true;
 		mHasFired = true;
 
 		if (mGunIndex == KNIFE) {
+			if (mKnifeCooldown > 0.0f) {
+				mIsFiring = false;
+				return bullets;
+			}
+			mKnifeCooldown = 3000.0f;
 			SetState(ATTACKING);
 			gSfxManager->PlaySample(mGuns[mGunIndex]->mGun->mFireSound,mX,mY);
 			//return true;
@@ -632,7 +660,7 @@ std::vector<Bullet*> Person::Fire()
 						theta += (rand()%(int)ceilf(mRecoilAngle*1000.0f))/1000.0f-(mRecoilAngle*0.5f);
 						//theta = mFacingAngle + (rand()%100)/400.0f-0.125f;
 					}
-					bullet = new Bullet(mX+w,mY+h,mX,mY,theta,speed,abs(mGuns[mGunIndex]->mGun->mDamage+rand()%17-8),this);
+					bullet = new Bullet(mX+w,mY+h,mX,mY,theta,speed,(mGuns[mGunIndex]->mGun->mId == 1 ? 15+5*mLaserLevel : abs(mGuns[mGunIndex]->mGun->mDamage+rand()%17-8)),this);
 					bullets.push_back(bullet);
 					mBullets->push_back(bullet);
 				}
@@ -712,6 +740,9 @@ std::vector<Bullet*> Person::StopFire()
 bool Person::Reload()
 {
 	if (mGunIndex == KNIFE || mGunIndex == GRENADE) return false;
+	// A robot can briefly have no active weapon after a rejected pickup or
+	// switch. Never dereference that empty slot from the square/reload path.
+	if (mGunIndex < 0 || mGunIndex >= 5 || mGuns[mGunIndex] == NULL) return false;
 	if (mState != RELOADING && mGuns[mGunIndex]->mClipAmmo != mGuns[mGunIndex]->mGun->mClip && mGuns[mGunIndex]->mRemainingAmmo != 0) {
 		SetState(RELOADING);
 		mSoundId = gSfxManager->PlaySample(mGuns[mGunIndex]->mGun->mReloadSound,mX,mY);
@@ -740,7 +771,9 @@ void Person::Switch(int index)
 
 		mRecoilAngle = 0.0f;
 		mNumDryFire = 0;
-		SetState(SWITCHING);
+		mIsFiring = false;
+		mHasFired = false;
+		SetState(NORMAL);
 	}
 }
 
@@ -804,12 +837,17 @@ void Person::SwitchNext()
 
 	mRecoilAngle = 0.0f;
 	mNumDryFire = 0;
-	SetState(SWITCHING);
+	mIsFiring = false;
+	mHasFired = false;
+	SetState(NORMAL);
 }
 
 //------------------------------------------------------------------------------------------------
 bool Person::PickUp(GunObject* gunobject)
 {
+	// Rumble Robots uses the shared laser as its only weapon. Ignore legacy
+	// AK/MOG and other CSPSP ground drops instead of equipping them.
+	if (gunobject == NULL || gunobject->mGun == NULL || gunobject->mGun->mId != 1) return false;
 	if (gunobject->mGun->mType == PRIMARY) {
 		if (mGuns[PRIMARY] == NULL) {
 			mGuns[PRIMARY] = gunobject;
@@ -864,6 +902,9 @@ bool Person::PickUp(GunObject* gunobject)
 //------------------------------------------------------------------------------------------------
 bool Person::Drop(int index, float speed)
 {
+	// Rumble Robots has no ground weapon drops.
+	return false;
+#if 0
 	if (index >= 5) return false;
 	if (index == KNIFE) return false;
 
@@ -909,11 +950,13 @@ bool Person::Drop(int index, float speed)
 	//mRecoilAngle = 0.0f;
 	//mNumDryFire = 0;
 	return true;
+#endif
 }
 
 //------------------------------------------------------------------------------------------------
 void Person::RotateFacing(float theta)
 {
+	theta *= GetSpeedMultiplier();
 	float thetaTemp = mRotation + theta;
 	if (thetaTemp > M_PI*2.0f) {			// angles are in radian, so 2 PI is one full circle
 		thetaTemp -= M_PI*2.0f;
@@ -1088,6 +1131,7 @@ void Person::Reset()
 	SetTotalRotation(M_PI_2);
 	SetMoveState(NOTMOVING);
 	mSpeed = 0.0f;
+	mKnifeCooldown = 0.0f;
 	mHealth = 100;
 	if (mState == DEAD) {
 		SetState(NORMAL);
@@ -1112,9 +1156,12 @@ void Person::Reset()
 	mHasFlag = false;
 }
 
-void Person::TakeDamage(int damage) {
+void Person::TakeDamage(int damage) { TakeDamage(damage,false); }
+
+void Person::TakeDamage(int damage, bool laserDamage) {
 	if (mInvincibleTime > 0.0f) return;
 	if (mState != DEAD) {
+		if (laserDamage) damage = damage*(100-15*mLaserDefenseLevel)/100;
 		SetMoveState(NOTMOVING);
 		mSpeed *= 0.1f;
 		mHealth -= damage;
@@ -1123,6 +1170,22 @@ void Person::TakeDamage(int damage) {
 			Die();
 		}
 	}
+}
+
+float Person::GetSpeedMultiplier() const { return 1.0f + 0.1f*(mSpeedLevel-1); }
+int Person::GetMaxHealth() const { return 100 + 20*mPowerLevel; }
+bool Person::UpgradeStat(int stat) {
+	if (mPowerPoints <= 0) return false;
+	int* level = NULL;
+	if (stat == ROBOT_SPEED) level=&mSpeedLevel;
+	else if (stat == ROBOT_POWER) level=&mPowerLevel;
+	else if (stat == ROBOT_LASER) level=&mLaserLevel;
+	else if (stat == ROBOT_DEFENSE) level=&mLaserDefenseLevel;
+	else if (stat == ROBOT_PUNCH) level=&mPunchLevel;
+	if (level == NULL || *level >= 5) return false;
+	(*level)++; mPowerPoints--;
+	if (stat == ROBOT_POWER) mHealth += 20;
+	return true;
 }
 
 void Person::ReceiveFlash(float intensity) {

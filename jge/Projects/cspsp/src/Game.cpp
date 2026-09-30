@@ -700,7 +700,7 @@ void Game::CheckCollisions()
 						mHud->AddDamageIndicator(bullet->mAngle);
 					}
 
-					p->TakeDamage(bullet->mDamage);
+					p->TakeDamage(bullet->mDamage, bullet->mParentGun != NULL && bullet->mParentGun->mId == 1);
 					if (p->mState == DEAD) {
 						UpdateScores(bullet->mParent,p,bullet->mParentGun);
 					}
@@ -827,7 +827,7 @@ void Game::CheckCollisions()
 										if (person2 == mPlayer) {
 											mHud->AddDamageIndicator(angle);
 										}
-										person2->TakeDamage(person1->mGuns[KNIFE]->mGun->mDamage);
+										person2->TakeDamage(20 + 5*(person1->mPunchLevel-1));
 										if (person2->mState == DEAD) {
 											UpdateScores(person1,person2,person1->mGuns[KNIFE]->mGun);
 										}
@@ -854,7 +854,7 @@ void Game::CheckCollisions()
 										if (person1 == mPlayer) {
 											mHud->AddDamageIndicator(angle);
 										}
-										person1->TakeDamage(person2->mGuns[KNIFE]->mGun->mDamage);
+										person1->TakeDamage(20 + 5*(person2->mPunchLevel-1));
 										if (person1->mState == DEAD) {
 											UpdateScores(person2,person1,person2->mGuns[KNIFE]->mGun);
 										}
@@ -2811,6 +2811,18 @@ void Game::Render()
 }
 
 void Game::UpdateScores(Person* attacker, Person* victim, Gun* weapon) {
+	if (attacker != NULL && attacker->mPowerPoints < 10) {
+		attacker->mPowerPoints++;
+		if (attacker != mPlayer) {
+			int eligible[5]; int count = 0;
+			if (attacker->mSpeedLevel < 5) eligible[count++] = ROBOT_SPEED;
+			if (attacker->mPowerLevel < 5) eligible[count++] = ROBOT_POWER;
+			if (attacker->mLaserLevel < 5) eligible[count++] = ROBOT_LASER;
+			if (attacker->mLaserDefenseLevel < 5) eligible[count++] = ROBOT_DEFENSE;
+			if (attacker->mPunchLevel < 5) eligible[count++] = ROBOT_PUNCH;
+			if (count > 0) attacker->UpgradeStat(eligible[rand()%count]);
+		}
+	}
 	victim->mNumDeaths++;
 	if (attacker != NULL) {
 		if (mGameType == FFA) {
@@ -2917,6 +2929,18 @@ void Game::NewSpec(Person* attacker, int index) {
 }
 
 void Game::Buy(int index) {
+	// Robot upgrade purchases use the existing buy screen and Power Points.
+	// Keep them outside the gun table so legacy weapon handling is unchanged.
+	if (index <= -10 && index >= -14) {
+		int stat = ROBOT_SPEED + (-10 - index);
+		if (mPlayer->UpgradeStat(stat)) {
+			mHud->SetMessage("Robot upgraded!");
+		}
+		else {
+			mHud->SetMessage("Need Power Points or max level");
+		}
+		return;
+	}
 	bool hasMoney = true;
 	if (index == -1) {
 		if (mPlayer->mGuns[PRIMARY] != NULL) {

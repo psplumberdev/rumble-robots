@@ -40,6 +40,7 @@
 
 #define NUM_QUADS 7
 #define WALKTIME 160.0f
+enum RobotStat { ROBOT_SPEED, ROBOT_POWER, ROBOT_LASER, ROBOT_DEFENSE, ROBOT_PUNCH };
 
 enum {
 	ANIM_PRIMARY = 0,
@@ -107,6 +108,7 @@ public:
 	std::vector<GunObject*>* mGunObjects;	
 
 	float mMaxSpeed;
+	float mKnifeCooldown;
 	int mState;
 	int mMoveState;
 	float mStateTime;
@@ -114,6 +116,7 @@ public:
 	float mStepTime;
 	int mHealth;
 	int mMoney;
+	int mSpeedLevel, mPowerLevel, mLaserLevel, mLaserDefenseLevel, mPunchLevel, mPowerPoints;
 	float mFacingAngle;
 	float mRecoilAngle;
 	float mLastFireAngle;
@@ -182,6 +185,10 @@ public:
 	virtual void Die();
 	virtual void Reset();
 	void TakeDamage(int damage);
+	void TakeDamage(int damage, bool laserDamage);
+	float GetSpeedMultiplier() const;
+	int GetMaxHealth() const;
+	bool UpgradeStat(int stat);
 	void ReceiveFlash(float intensity);
 	void SetQuads(JQuad* quads[], JQuad* deadquad);
 	GunObject* GetCurrentGun();

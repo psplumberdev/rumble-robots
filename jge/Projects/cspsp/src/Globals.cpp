@@ -30,6 +30,7 @@ Gun gGuns[28];
 JQuad** gGunHandQuads;
 JQuad** gGunGroundQuads;
 JQuad* gPlayersQuads[2][4][NUM_QUADS];
+JQuad* gRobotQuads[2][4];
 JQuad* gPlayersDeadQuads[2][4];
 JQuad* gRadarQuad;
 JQuad* gBuyZoneQuad;

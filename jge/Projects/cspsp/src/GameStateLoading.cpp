@@ -80,6 +80,22 @@ int GameStateLoading::Load(int stage) {
 			}*/
 			JTexture* playersTexture = mRenderer->LoadTexture("gfx/players.png", true);
 			JTexture* playersDeadTexture = mRenderer->LoadTexture("gfx/playersdead.png", true);
+			const char* robotFiles[2][4] = {
+				{"gfx/lobjaw.png", "gfx/lugnut.png", "gfx/bitor.png", "gfx/bitor.png"},
+				{"gfx/boltman.png", "gfx/clamster.png", "gfx/me_fisto.png", "gfx/me_fisto.png"}
+			};
+			for (int team=0; team<2; team++) {
+				for (int type=0; type<4; type++) {
+					JTexture* robotTexture = mRenderer->LoadTexture(robotFiles[team][type], true);
+					gRobotQuads[team][type] = new JQuad(robotTexture,0,0,512,512);
+					gRobotQuads[team][type]->SetHotSpot(256,256);
+				}
+			}
+			// The source LOBJAW art is upside down in the top-down play view.
+			// Flip both axes so its forward side matches the other robots.
+			gRobotQuads[T][0]->SetHFlip(false);
+			gRobotQuads[T][0]->SetVFlip(false);
+			gRobotQuads[CT][2]->SetHFlip(true); // MEFISTO source faces backward.
 			
 			for (int i=0; i<2; i++) {
 				for (int j=0; j<4; j++) {
@@ -88,8 +104,10 @@ int GameStateLoading::Load(int stage) {
 						gPlayersQuads[i][j][k]->SetHotSpot(16,10);
 					}*/
 					int offsetX = (j+i*4)*32;
-					gPlayersQuads[i][j][BODY] = new JQuad(playersTexture,offsetX+0,0,32,16);
-					gPlayersQuads[i][j][BODY]->SetHotSpot(16,8);
+					gPlayersQuads[i][j][BODY] = gRobotQuads[i][j];
+					// Keep the legacy atlas parts allocated for non-robot paths.
+					// Robot quads are 512x512 source images; keep the 256px center
+					// hotspot set above. The old 16px atlas hotspot offset the robots.
 
 					gPlayersQuads[i][j][HEAD] = new JQuad(playersTexture,offsetX+16,16,16,16);
 					gPlayersQuads[i][j][HEAD]->SetHotSpot(8,7);
@@ -111,8 +129,8 @@ int GameStateLoading::Load(int stage) {
 					gPlayersQuads[i][j][LEGS] = new JQuad(playersTexture,offsetX+0,32,32,32);
 					gPlayersQuads[i][j][LEGS]->SetHotSpot(16,16);
 
-					gPlayersDeadQuads[i][j] = new JQuad(playersDeadTexture,(j+i*4)*32,64,29,47);
-					gPlayersDeadQuads[i][j]->SetHotSpot(14,23);
+					gPlayersDeadQuads[i][j] = new JQuad(playersDeadTexture,offsetX,0,32,32);
+					gPlayersDeadQuads[i][j]->SetHotSpot(16,16);
 				}
 			}
 

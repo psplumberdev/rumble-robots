@@ -90,6 +90,23 @@ void Hud::Render()
 {
 	gFont->SetScale(0.7f);
 
+	// Rumble Robots progression readout. Keep this in the HUD so upgrades are
+	// visible during a round without changing the working menu or sprite path.
+	if (mPlayer != NULL && mPlayer->mState != DEAD) {
+		char stats[160];
+		sprintf(stats, "PP:%d  SPD:%d  PWR:%d  LAS:%d  DEF:%d  PCH:%d",
+			mPlayer->mPowerPoints,
+			mPlayer->mSpeedLevel,
+			mPlayer->mPowerLevel,
+			mPlayer->mLaserLevel,
+			mPlayer->mLaserDefenseLevel,
+			mPlayer->mPunchLevel);
+		gFont->SetScale(0.55f);
+		gFont->SetColor(ARGB(255,255,255,255));
+		gFont->DrawShadowedString(stats, 8.0f, SCREEN_HEIGHT-18.0f);
+		gFont->SetScale(0.7f);
+	}
+
 	int ystart = 5;
 	if (mPlayer->mState == DEAD) {
 		ystart = 37;

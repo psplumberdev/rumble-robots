@@ -1,5 +1,20 @@
 # CSPSP
 
+## Rumble Robots PSP build
+
+This repository now includes the Rumble Robots conversion for PSP-1000 and PSP-3000. It keeps CSPSP's stable top-down multiplayer foundation while replacing the player presentation with centered robot sprites, red and blue robot teams, a laser primary weapon, and punch/knife combat.
+
+The Rumble Robots build includes a skills-only buy menu (Speed, Power, Laser, Defense, and Punch), a HUD showing upgrade points and levels, five starting upgrade points, one point per kill up to ten, three-second laser and punch cooldowns, unlimited laser ammunition for testing, and enemy bots that use both laser and punch attacks. Legacy ground weapon drops and chat controls are disabled. The XMB title and icon use Rumble Robots branding.
+
+Build with Minimalist PSPSDK from `jge/Projects/cspsp`:
+
+```sh
+make clean
+make 3xx
+```
+
+Copy the resulting `EBOOT.PBP` together with `bin/` to `PSP/GAME/RUMBLE_ROBOTS/`.
+
 ![screenshot1](https://user-images.githubusercontent.com/2881968/173958305-68c42c56-7d0d-49db-8a21-fbd25b0f7e6c.png)
 ![screenshot2](https://user-images.githubusercontent.com/2881968/173957027-63d38e88-00fd-4d98-91b7-109fe53518d4.png)
 

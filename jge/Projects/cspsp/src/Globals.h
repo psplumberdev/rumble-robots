@@ -16,7 +16,7 @@
 #include "Camera.h"
 #include "Hud.h"
 #include "Danzeff.h"
-#include "HGE/hgeparticle.h"
+#include "hge/hgeparticle.h"
 #include "Wlan.h"
 #include "HttpManager.h"
 
@@ -56,6 +56,7 @@ extern Gun gGuns[28];
 extern JQuad** gGunHandQuads;
 extern JQuad** gGunGroundQuads;
 extern JQuad* gPlayersQuads[2][4][NUM_QUADS];
+extern JQuad* gRobotQuads[2][4];
 extern JQuad* gPlayersDeadQuads[2][4];
 extern JQuad* gRadarQuad;
 extern JQuad* gBuyZoneQuad;

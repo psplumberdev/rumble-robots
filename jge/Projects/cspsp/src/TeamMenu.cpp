@@ -20,21 +20,21 @@ TeamMenu::TeamMenu()
 	mSelectedIndex = -1;
 
 	mCategories[MAIN1].id = MAIN1;
-	mCategories[MAIN1].buttons.push_back(Button(T,"terrorist forces"));
-	mCategories[MAIN1].buttons.push_back(Button(CT,"CT forces"));
+	mCategories[MAIN1].buttons.push_back(Button(T,"RED TEAM"));
+	mCategories[MAIN1].buttons.push_back(Button(CT,"BLUE TEAM"));
 	mCategories[MAIN1].buttons.push_back(Button(NONE,"spectator"));
 
 	mCategories[CT].id = CT;
-	mCategories[CT].buttons.push_back(Button(0,"SEAL TEAM 6"));
-	mCategories[CT].buttons.push_back(Button(1,"GSG-9"));
-	mCategories[CT].buttons.push_back(Button(2,"SAS"));
-	mCategories[CT].buttons.push_back(Button(3,"GIGN"));
+	mCategories[CT].buttons.push_back(Button(0,"BOLTMAN"));
+	mCategories[CT].buttons.push_back(Button(1,"CLAMSTER"));
+	mCategories[CT].buttons.push_back(Button(2,"MEFISTO"));
+	mCategories[CT].buttons.push_back(Button(3,"MEFISTO"));
 
 	mCategories[T].id = T;
-	mCategories[T].buttons.push_back(Button(0,"PHOENIX CONNEXION"));
-	mCategories[T].buttons.push_back(Button(1,"ELITE CREW"));
-	mCategories[T].buttons.push_back(Button(2,"ARCTIC AVENGERS"));
-	mCategories[T].buttons.push_back(Button(3,"GUERILLA WARFARE"));
+	mCategories[T].buttons.push_back(Button(0,"LOBJAW"));
+	mCategories[T].buttons.push_back(Button(1,"LUGNUT"));
+	mCategories[T].buttons.push_back(Button(2,"BITOR"));
+	mCategories[T].buttons.push_back(Button(3,"BITOR"));
 
 	mCT = new Person(gPlayersQuads[CT][0],gPlayersDeadQuads[0][0],NULL,NULL,CT,"test",0);
 	mT = new Person(gPlayersQuads[T][0],gPlayersDeadQuads[0][0],NULL,NULL,CT,"test",0);

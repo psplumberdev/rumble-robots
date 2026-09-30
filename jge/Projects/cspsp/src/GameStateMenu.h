@@ -41,7 +41,7 @@
 
 static char *mCategories[] =
 {
-	"CSPSP v1.92b",
+	"Rumble Robots",
 	"2011",
 	"",
 	"Programming",

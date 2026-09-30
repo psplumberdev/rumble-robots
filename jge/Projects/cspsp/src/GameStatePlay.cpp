@@ -161,6 +161,8 @@ void GameStatePlay::Start()
 	}
 
 	mPlayer->mGuns[KNIFE] = new GunObject(&mGuns[0],0,0);
+	mPlayer->mGuns[PRIMARY] = new GunObject(&mGuns[1],10000,10000);
+	mPlayer->mGunIndex = PRIMARY;
 	mPlayer->SetState(DEAD);
 	mPlayer->mTeam = NONE;
 	mPeople.push_back(mPlayer);
@@ -398,7 +400,7 @@ void GameStatePlay::CheckCollisions()
 								gParticleEngine->GenerateParticles(BLOOD,x2,y2,5);
 								mMap->AddDecal(x2,y2,DECAL_BLOOD);
 								gSfxManager->PlaySample(gKnifeHitSound,x,y);
-								mPeopleTemp[j]->TakeDamage(mPeople[i]->mGuns[KNIFE]->mGun->mDamage);
+								mPeopleTemp[j]->TakeDamage(20 + 5*(mPeople[i]->mPunchLevel-1));
 								if (mPeopleTemp[j]->mState == DEAD) {
 									UpdateScores(mPeople[i],mPeopleTemp[j],mPeople[i]->mGuns[KNIFE]->mGun);
 								}
@@ -416,7 +418,7 @@ void GameStatePlay::CheckCollisions()
 								gParticleEngine->GenerateParticles(BLOOD,x,y,5);
 								mMap->AddDecal(x,y,DECAL_BLOOD);
 								gSfxManager->PlaySample(gKnifeHitSound,x2,y2);
-								mPeople[i]->TakeDamage(mPeopleTemp[j]->mGuns[KNIFE]->mGun->mDamage);
+								mPeople[i]->TakeDamage(20 + 5*(mPeopleTemp[j]->mPunchLevel-1));
 								if (mPeople[i]->mState == DEAD) {
 									UpdateScores(mPeopleTemp[j],mPeople[i],mPeople[j]->mGuns[KNIFE]->mGun);
 								}
@@ -660,14 +662,10 @@ void GameStatePlay::Update(float dt)
 	else {
 		if (!mEngine->GetButtonState(PSP_CTRL_SELECT)) {
 			if (mEngine->GetButtonClick(PSP_CTRL_UP)) {
-				gDanzeff->Enable();
-				strcpy(mChatString,"");
-				mIsTeamOnlyChat = false;
+				// Chat is disabled for the Rumble Robots build.
 			}
 			else if (mEngine->GetButtonClick(PSP_CTRL_RIGHT)) {
-				gDanzeff->Enable();
-				strcpy(mChatString,"");
-				mIsTeamOnlyChat = true;
+				// Chat is disabled for the Rumble Robots build.
 			}
 		}
 		if (mEngine->GetButtonClick(PSP_CTRL_DOWN)) {
@@ -853,6 +851,8 @@ void GameStatePlay::NewGame() {
 		//ct->SetPosition(mMap->mCTSpawns[i]->x,mMap->mCTSpawns[i]->y);
 		//ct->SetTotalRotation(M_PI_2);
 		ct->mGuns[KNIFE] = new GunObject(&mGuns[0],0,0);
+		ct->mGuns[PRIMARY] = new GunObject(&mGuns[1],10000,10000);
+		ct->mGunIndex = PRIMARY;
 		//ct->mCollisionPoints = &mMap->mCollisionPoints;
 		ct->mGrid = mGrid;
 		ct->mPeople = &mPeople;
@@ -875,6 +875,8 @@ void GameStatePlay::NewGame() {
 		//t->SetPosition(mMap->mTSpawns[i]->x,mMap->mTSpawns[i]->y);
 		//t->SetTotalRotation(M_PI_2);
 		t->mGuns[KNIFE] = new GunObject(&mGuns[0],0,0);
+		t->mGuns[PRIMARY] = new GunObject(&mGuns[1],10000,10000);
+		t->mGunIndex = PRIMARY;
 		//t->mCollisionPoints = &mMap->mCollisionPoints;
 		t->mGrid = mGrid;
 		t->mPeople = &mPeople;
@@ -948,6 +950,9 @@ void GameStatePlay::ResetRound() {
 
 	mMap->Reset();
 	mMap->ClearDecals();
+	// Rumble Robots has fixed knife + laser loadouts; remove legacy map drops.
+	for (unsigned int i=0; i<mGunObjects.size(); i++) delete mGunObjects[i];
+	mGunObjects.clear();
 
 	mNumRemainingCTs = mNumCTs;
 	mNumRemainingTs = mNumTs;
@@ -979,12 +984,8 @@ void GameStatePlay::ResetRound() {
 
 		if (isDead) {
 			Gun* gun;
-			if (mPeople[i]->mTeam == CT) {
-				gun = &mGuns[2];
-			}
-			else {
-				gun = &mGuns[1];
-			}
+			// Rumble Robots uses the shared laser as the primary weapon for both teams.
+			gun = &mGuns[1];
 			GunObject* gunobject = new GunObject(gun,gun->mClip,gun->mClip*(gun->mNumClips-1));
 			if (!mPeople[i]->PickUp(gunobject)) {
 				delete gunobject;

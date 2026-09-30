@@ -31,6 +31,13 @@ BuyMenu::BuyMenu(Person* player, Gun guns[])
 	mCategories[T][MAIN].buttons.push_back(Button(RIFLES,"rifles"));
 	mCategories[T][MAIN].buttons.push_back(Button(MACHINEGUNS,"machine guns"));
 	mCategories[T][MAIN].buttons.push_back(Button(EQUIPMENT,"equipment"));
+	// Robot upgrades live beside the legacy purchase categories. Negative ids
+	// are handled by Game::Buy and never index the gun table.
+	mCategories[T][MAIN].buttons.push_back(Button(-10,"speed +"));
+	mCategories[T][MAIN].buttons.push_back(Button(-11,"power +"));
+	mCategories[T][MAIN].buttons.push_back(Button(-12,"laser +"));
+	mCategories[T][MAIN].buttons.push_back(Button(-13,"defense +"));
+	mCategories[T][MAIN].buttons.push_back(Button(-14,"punch +"));
 	mCategories[CT][MAIN] = mCategories[T][MAIN];
 
 	for (int i=1; i<=6; i++) {
@@ -80,6 +87,19 @@ BuyMenu::BuyMenu(Person* player, Gun guns[])
 		mCategories[T][EQUIPMENT].buttons.push_back(Button(i,guns[i].mName));
 		mCategories[CT][EQUIPMENT].buttons.push_back(Button(i,guns[i].mName));
 	}
+	// Rumble Robots has no weapon shop. Replace the legacy categories with
+	// the five robot skills while keeping the existing menu navigation.
+	for (int team=0; team<2; team++) {
+		for (int category=0; category<=EQUIPMENT; category++) {
+			mCategories[team][category].buttons.clear();
+		}
+		mCategories[team][MAIN].id = MAIN;
+		mCategories[team][MAIN].buttons.push_back(Button(-10,"speed +"));
+		mCategories[team][MAIN].buttons.push_back(Button(-11,"power +"));
+		mCategories[team][MAIN].buttons.push_back(Button(-12,"laser +"));
+		mCategories[team][MAIN].buttons.push_back(Button(-13,"defense +"));
+		mCategories[team][MAIN].buttons.push_back(Button(-14,"punch +"));
+	}
 
 	mIsOldStyle = true;
 }
@@ -105,7 +125,14 @@ void BuyMenu::Update(float dt)
 	if (mEngine->GetButtonClick(PSP_CTRL_CROSS)) {
 		if (mSelectedIndex != -1) {
 			if (mCategoryIndex == MAIN) {
-				mCategoryIndex = mCategories[team][mCategoryIndex].buttons[mSelectedIndex].id;
+				int selectedId = mCategories[team][mCategoryIndex].buttons[mSelectedIndex].id;
+				if (selectedId < -9) {
+					mChoice = selectedId;
+					mIsSelected = true;
+					Disable();
+					return;
+				}
+				mCategoryIndex = selectedId;
 				if (mIsOldStyle) {
 					mSelectedIndex = 0;
 				}
@@ -175,7 +202,7 @@ void BuyMenu::Render()
 	//mRenderer->FillCircle(SCREEN_WIDTH_2,SCREEN_HEIGHT_2,SCREEN_HEIGHT_2,ARGB(200,50,50,50));
 	gFont->SetColor(ARGB(255,255,255,255));
 	gFont->SetScale(1.0f);
-	gFont->DrawString("Buy Menu", 310, 40);
+	gFont->DrawString("Rumble Robots Skills", 310, 40);
 	gFont->SetScale(0.75f);
 
 	if (!mIsOldStyle) {
@@ -212,7 +239,9 @@ void BuyMenu::Render()
 			}
 			else {
 				int cid = mCategories[team][mCategoryIndex].buttons[i].id;
-				id = mCategories[team][cid].buttons[0].id;
+				// Upgrade entries have no gun/category id. Use the laser quad only
+				// as a harmless preview while retaining their text and negative id.
+				id = (cid < 0) ? 1 : mCategories[team][cid].buttons[0].id;
 			}
 			
 			if (!mIsOldStyle) {
@@ -238,7 +267,7 @@ void BuyMenu::Render()
 			}
 			else {
 				int cid = mCategories[team][mCategoryIndex].buttons[i].id;
-				id = mCategories[team][cid].buttons[0].id;
+				id = (cid < 0) ? 1 : mCategories[team][cid].buttons[0].id;
 			}
 
 			if (!mIsOldStyle) {
